@@ -5,14 +5,23 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <TextView
+        android:id="@+id/titleTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        android:text="Randevu Görüntüleme Ekranı"
+        android:textSize="24sp"
+        android:textStyle="bold" />
     <!-- TC Kimlik Girişi -->
     <EditText
         android:id="@+id/tcEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
         android:hint="TC Kimlik Numaranızı Giriniz"
-        android:inputType="number"
-        android:layout_marginBottom="16dp" />
+        android:inputType="number" />
 
     <!-- Randevuları Sorgulamak İçin Buton -->
     <Button

@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -80,8 +81,8 @@ public class AppointmentListActivity extends AppCompatActivity {
         while (cursor.moveToNext()) {
             String appointment = String.format("TC: %s\nAd: %s\nSoyad: %s\nHastane: %s\nTarih: %s\nSaat: %s",
                     cursor.getString(cursor.getColumnIndexOrThrow(SQLiteHelper.COLUMN_TC)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(SQLiteHelper.COLUMN_NAME)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(SQLiteHelper.COLUMN_SURNAME)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(SQLiteHelper.COLUMN_NAME)),  // Ad
+                    cursor.getString(cursor.getColumnIndexOrThrow(SQLiteHelper.COLUMN_SURNAME)),  // Soyad
                     cursor.getString(cursor.getColumnIndexOrThrow(SQLiteHelper.COLUMN_HOSPITAL)),
                     cursor.getString(cursor.getColumnIndexOrThrow(SQLiteHelper.COLUMN_DATE)),
                     cursor.getString(cursor.getColumnIndexOrThrow(SQLiteHelper.COLUMN_TIME)));
@@ -102,6 +103,7 @@ public class AppointmentListActivity extends AppCompatActivity {
         appointmentListView.setOnItemClickListener((parent, view, position, id) ->
                 showOptionsDialog(appointments.get(position), position, adapter));
     }
+
 
     // TC'ye ait bir randevuyu silme metodu
     private void deleteAppointment(String tc) {
@@ -153,45 +155,76 @@ public class AppointmentListActivity extends AppCompatActivity {
 
     // Randevu güncelleme diyalogunu gösteren metot
     private void showUpdateDialog(String tc, String appointmentDetails, int position, ArrayAdapter<String> adapter) {
+        // Güncellenmiş formu al
         View updateView = getLayoutInflater().inflate(R.layout.dialog_update_appointment, null);
-        EditText nameEditText = updateView.findViewById(R.id.nameEditText);
-        EditText surnameEditText = updateView.findViewById(R.id.surnameEditText);
-        EditText hospitalEditText = updateView.findViewById(R.id.hospitalEditText);
-        EditText dateEditText = updateView.findViewById(R.id.dateEditText);
-        EditText timeEditText = updateView.findViewById(R.id.timeEditText);
+        Spinner hospitalSpinner = updateView.findViewById(R.id.hospitalSpinner);
+        Spinner dateSpinner = updateView.findViewById(R.id.dateSpinner);
+        Spinner timeSpinner = updateView.findViewById(R.id.timeSpinner);
 
+        // Seçenekler
+        String[] hospitals = {"Hastane 1", "Hastane 2", "Hastane 3"};
+        String[] dates = {"01.01.2024", "02.01.2024", "03.01.2024"};
+        String[] times = {"09:00", "10:00", "11:00", "14:00", "15:00"};
+
+        // ArrayAdapter ile spinner'ları dolduruyoruz
+        ArrayAdapter<String> hospitalAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, hospitals);
+        hospitalAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        hospitalSpinner.setAdapter(hospitalAdapter);
+
+        ArrayAdapter<String> dateAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, dates);
+        dateAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        dateSpinner.setAdapter(dateAdapter);
+
+        ArrayAdapter<String> timeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, times);
+        timeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        timeSpinner.setAdapter(timeAdapter);
+
+        // appointmentDetails metninden randevu bilgilerini ayrıştırma
         String[] details = appointmentDetails.split("\n");
 
-        // Mevcut randevu bilgilerini form alanlarına yerleştirme
-        nameEditText.setText(details[1].split(": ")[1]);
-        surnameEditText.setText(details[2].split(": ")[1]);
-        hospitalEditText.setText(details[3].split(": ")[1]);
-        dateEditText.setText(details[4].split(": ")[1]);
-        timeEditText.setText(details[5].split(": ")[1]);
+        // Spinner'ları mevcut verilerle güncelleme
+        hospitalSpinner.setSelection(getIndex(hospitals, details[3].split(": ")[1]));
+        dateSpinner.setSelection(getIndex(dates, details[4].split(": ")[1]));
+        timeSpinner.setSelection(getIndex(times, details[5].split(": ")[1]));
 
         // Güncelleme diyalog kutusunu gösterme
         new AlertDialog.Builder(this)
                 .setTitle("Randevu Güncelle")
                 .setView(updateView)
                 .setPositiveButton("Güncelle", (dialog, which) -> {
+                    // Seçilen yeni değerleri almak
                     ContentValues values = new ContentValues();
-                    values.put(SQLiteHelper.COLUMN_NAME, nameEditText.getText().toString().trim());
-                    values.put(SQLiteHelper.COLUMN_SURNAME, surnameEditText.getText().toString().trim());
-                    values.put(SQLiteHelper.COLUMN_HOSPITAL, hospitalEditText.getText().toString().trim());
-                    values.put(SQLiteHelper.COLUMN_DATE, dateEditText.getText().toString().trim());
-                    values.put(SQLiteHelper.COLUMN_TIME, timeEditText.getText().toString().trim());
+                    values.put(SQLiteHelper.COLUMN_HOSPITAL, hospitalSpinner.getSelectedItem().toString());
+                    values.put(SQLiteHelper.COLUMN_DATE, dateSpinner.getSelectedItem().toString());
+                    values.put(SQLiteHelper.COLUMN_TIME, timeSpinner.getSelectedItem().toString());
 
                     // Veritabanında güncelleme işlemi yap
                     updateAppointment(tc, values);
 
                     // Listeyi güncelle
                     adapter.remove(adapter.getItem(position));
-                    adapter.insert(String.format("TC: %s\nAd: %s\nSoyad: %s\nHastane: %s\nTarih: %s\nSaat: %s", tc, values.getAsString(SQLiteHelper.COLUMN_NAME), values.getAsString(SQLiteHelper.COLUMN_SURNAME), values.getAsString(SQLiteHelper.COLUMN_HOSPITAL), values.getAsString(SQLiteHelper.COLUMN_DATE), values.getAsString(SQLiteHelper.COLUMN_TIME)), position);
+                    adapter.insert(String.format("TC: %s\nAd: %s\nSoyad: %s\nHastane: %s\nTarih: %s\nSaat: %s",
+                            tc, details[1].split(": ")[1], details[2].split(": ")[1],
+                            values.getAsString(SQLiteHelper.COLUMN_HOSPITAL),
+                            values.getAsString(SQLiteHelper.COLUMN_DATE),
+                            values.getAsString(SQLiteHelper.COLUMN_TIME)), position);
                     adapter.notifyDataSetChanged();
                 })
                 .setNegativeButton("İptal", null)
                 .create().show();
     }
+
+    // Helper metod: Bir dizideki öğe için indeksini döndürür
+    private int getIndex(String[] array, String value) {
+        for (int i = 0; i < array.length; i++) {
+            if (array[i].equals(value)) {
+                return i;
+            }
+        }
+        return 0; // Varsayılan olarak ilk öğe
+    }
+
+
 
     // Kullanıcıya kısa bir mesaj gösteren metot
     private void showToast(String message) {
